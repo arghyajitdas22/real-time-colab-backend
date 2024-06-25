@@ -9,14 +9,29 @@ generator client {
 
 model User {
   id        Int       @id @default(autoincrement())
-  firstName String
-  lastName  String
+  firstName String    @default("")
+  lastName  String    @default("")
   email     String    @unique
   password  String
   documents Document[]
   chats     Chat[]
+  tasks     Task[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model Task {
+  task_id     Int      @id @default(autoincrement())
+  content     String
+  due_date    DateTime
+  status      String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  user_id     Int
+  document_id Int
+
+  user     User     @relation(fields: [user_id], references: [id])
+  document Document @relation(fields: [document_id], references: [id])
 }
 
 model Document {
@@ -26,10 +41,10 @@ model Document {
   type      String
   userId    Int
   user      User      @relation(fields: [userId], references: [id])
+  tasks     Task[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
-
 
 model Chat {
   id        Int       @id @default(autoincrement())
@@ -39,4 +54,3 @@ model Chat {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
-
