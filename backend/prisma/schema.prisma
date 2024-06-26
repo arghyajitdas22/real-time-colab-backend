@@ -7,18 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        Int       @id @default(autoincrement())
-  firstName String    @default("")
-  lastName  String    @default("")
-  email     String    @unique
-  password  String
-  documents Document[]
-  chats     Chat[]
-  tasks     Task[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
 
 model Task {
   task_id     Int      @id @default(autoincrement())
@@ -46,11 +34,55 @@ model Document {
   updatedAt DateTime  @updatedAt
 }
 
-model Chat {
-  id        Int       @id @default(autoincrement())
-  message   String
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model User {
+  id               Int        @id @default(autoincrement())
+  username         String     @unique
+  email            String     @unique
+  password         String
+  documents        Document[]
+  tasks            Task[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  createdTeams     Team[]        @relation("CreatedTeams")
+  teams            TeamMember[]
+
+  @@map("users") // Optional: Specify custom table name if needed
 }
+
+model Message {
+  id        Int        @id @default(autoincrement())
+  text      String     @map("message_text")
+  sender    User       @relation("SentMessages", fields: [senderId], references: [id])
+  receiver  User       @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  senderId  Int
+  receiverId Int
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("messages") // Optional: Specify custom table name if needed
+}
+
+
+model Team {
+  id          Int           @id @default(autoincrement())
+  title       String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  creatorId   Int
+  creator     User          @relation("CreatedTeams", fields: [creatorId], references: [id])
+  members     TeamMember[]
+
+  @@map("teams") // Optional: Specify custom table name if needed
+}
+
+model TeamMember {
+  teamId   Int
+  userId   Int
+  team     Team   @relation(fields: [teamId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@id([teamId, userId]) // Composite primary key
+}
+
