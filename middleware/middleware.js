@@ -14,4 +14,29 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+const { StatusCodes } = require("http-status-codes");
+
+module.exports.authenticate = (req, res, next) => {
+  const token = req.header("Authorization").replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "Access denied. No token provided.",
+      status: false,
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "Invalid token.",
+      status: false,
+    });
+  }
+};
+
+
 module.exports = authenticateToken;

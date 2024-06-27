@@ -11,7 +11,7 @@ module.exports.createTeam = async (req, res, next) => {
             connect: { id: parseInt(creatorId) }
           },
           members: {
-            create: { userId: parseInt(creatorId) } // Add creator as a member
+            create: { userId: parseInt(creatorId) } 
           }
         }
       });
@@ -24,30 +24,54 @@ module.exports.createTeam = async (req, res, next) => {
 
 
 module.exports.addTeamMember = async (req, res, next) => {
-    try {
-      const { teamId, username } = req.body;
-  
-      // Find user by username
-      const user = await prisma.user.findUnique({
-        where: { username: username }
-      });
-  
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-  
-      // Add user to team
-      const teamMember = await prisma.teamMember.create({
-        data: {
-          teamId: parseInt(teamId),
-          userId: user.id
-        }
-      });
-  
-      res.json({ teamMember });
-    } catch (error) {
-      next(error);
+  try {
+    const { teamId, first_name } = req.body;
+
+    // Find user by first name
+    const user = await prisma.user.findMany({
+      where: { first_name }
+    });
+
+    if (user.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    // Check if team exists
+    const team = await prisma.team.findUnique({
+      where: { id: parseInt(teamId) }
+    });
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if user is already a member of the team
+    const existingMember = await prisma.teamMember.findUnique({
+      where: {
+        teamId_userId: {
+          teamId: parseInt(teamId),
+          userId: user[0].id
+        }
+      }
+    });
+
+    if (existingMember) {
+      return res.status(400).json({ error: 'User is already a member of the team' });
+    }
+
+    // Add user to team
+    const teamMember = await prisma.teamMember.create({
+      data: {
+        teamId: parseInt(teamId),
+        userId: user[0].id
+      }
+    });
+
+    res.json({ teamMember });
+  } catch (error) {
+    console.error('Error adding team member:', error);
+    next(error);
+  }
   };
 
 
@@ -70,23 +94,24 @@ module.exports.getTeamMembers = async (req, res, next) => {
   
       res.json({ members });
     } catch (error) {
+      console.log(error);
       next(error);
     }
   };
 
 
-  // Fetch all teams a user is a member of
+ 
 module.exports.getTeamsForMember = async (req, res, next) => {
     try {
       const { userId } = req.params;
-  
-      // Find user by userId and include teams they are members of
+
+      
       const userWithTeams = await prisma.user.findUnique({
         where: { id: parseInt(userId) },
         include: {
           teams: {
             include: {
-              team: true  // Include details of each team
+              team: true  
             }
           }
         }
@@ -105,3 +130,26 @@ module.exports.getTeamsForMember = async (req, res, next) => {
     }
   };
   
+
+module.exports.getAllTeams = async (req, res, next) => {
+  try {
+    const teams = await prisma.team.findMany({
+      include: {
+        members: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    const teamsWithMembers = teams.map((team) => ({
+      ...team,
+      members: team.members.map((member) => member.user),
+    }));
+
+    res.json({ teams: teamsWithMembers });
+  } catch (error) {
+    next(error);
+  }
+};

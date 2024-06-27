@@ -1,8 +1,12 @@
-const { createTeam, addTeamMember,getTeamMembers } = require("../controllers/teamcontroller");
+const  {createTeam, addTeamMember,getTeamMembers , getAllTeams} = require("../controllers/teamcontroller");
 const router = require("express").Router();
+const authenticate = require('../middleware/middleware');
 
-router.post('/create', createTeam);
-router.post('/add-member', addTeamMember);
-router.get('/:teamId/members', getTeamMembers);
+router.post('/create', authenticate, createTeam);
+router.post('/add-member', authenticate, addTeamMember);
+router.get('/:teamId/members', authenticate, getTeamMembers);
+router.get('/allteam',authenticate, getAllTeams);
+
+
 
 module.exports = router;
