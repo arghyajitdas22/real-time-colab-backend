@@ -42,7 +42,7 @@ module.exports.login = async (req, res, next) => {
       .json({ status: true, user: userWithoutPassword, token });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      msg: "An error occurred while creating the user",
+      msg: "An error occurred while logging in",
       status: false,
     });
   }
@@ -95,20 +95,26 @@ module.exports.register = async (req, res, next) => {
 };
 
 module.exports.checkUserSession = async (req, res) => {
-  const { token } = req.body;
-
-  if (!token) {
-    return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Token not provided' });
-  }
-
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
-    res.status(StatusCodes.OK).json({ message: 'Token active' });
+    const { token } = req.body;
+
+    let msg;
+
+    jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
+      if (err) {
+        // console.log(0);
+        msg = "token expired";
+      } else {
+        // console.log(1);
+        msg = "token active";
+      }
+    });
+
+    res.status(StatusCodes.OK).json({ message: msg });
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Token expired' });
-    } else {
-      res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Invalid token' });
-    }
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "An error occurred while checking user session",
+      status: false,
+    });
   }
 };
