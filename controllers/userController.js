@@ -100,7 +100,7 @@ module.exports.checkUserSession = async (req, res) => {
 
     let msg;
 
-    jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
+    jwt.verify(token, process.env.SECRET_KEY, function (err, decoded) {
       if (err) {
         // console.log(0);
         msg = "token expired";
