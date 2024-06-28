@@ -1,22 +1,32 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const secretKey = process.env.SECRET_KEY; // Make sure to set this in your .env file
-
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Assuming the token is in the format "Bearer <token>"
-
-  if (!token) return res.sendStatus(401); // Unauthorized if no token is provided
-
-  jwt.verify(token, secretKey, (err, user) => {
-    if (err) return res.sendStatus(403); // Forbidden if the token is invalid
-    req.user = user;
-    next();
-  });
-};
-
 const { StatusCodes } = require("http-status-codes");
 
-module.exports.authenticate = (req, res, next) => {
+const authenticateToken = (req, res, next) => {
+  const authHeaders = req.headers.authorization;
+
+  if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "No token",
+      status: false,
+    });
+  }
+
+  const token = authHeaders.split(" ")[1];
+
+  try {
+    const payload = jwt.verify(token, secretKey);
+    req.user = { user_id: payload.user_id };
+    next();
+  } catch (error) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "Invalid Token",
+      status: false,
+    });
+  }
+};
+
+const authenticate = (req, res, next) => {
   const token = req.header("Authorization").replace("Bearer ", "");
 
   if (!token) {
@@ -38,5 +48,4 @@ module.exports.authenticate = (req, res, next) => {
   }
 };
 
-
-module.exports = authenticateToken;
+module.exports = { authenticateToken, authenticate };
