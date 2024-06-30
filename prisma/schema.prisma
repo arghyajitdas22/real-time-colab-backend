@@ -8,19 +8,35 @@ generator client {
 }
 
 model Task {
-  task_id     Int      @id @default(autoincrement())
-  content     String
-  due_date    DateTime
-  status      String
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  user_id     Int
-  document_id Int
-  projectId   Int?
+  task_id    Int      @id @default(autoincrement())
+  content    String
+  due_date   DateTime
+  status     Status
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  creatorId  Int
+  assigneeId Int
+  projectId  Int
 
-  user     User     @relation(fields: [user_id], references: [id])
-  document Document @relation(fields: [document_id], references: [id])
-  project  Project? @relation(fields: [projectId], references: [id])
+  creator   User     @relation("TaskCreator", fields: [creatorId], references: [id])
+  assignee  User     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id])
+}
+
+enum Status {
+  TO_DO
+  IN_PROGRESS
+  COMPLETED
+}
+
+model TaskOrder {
+  id            Int      @id @default(autoincrement())
+  projectId     Int      @unique
+  to_do_ids      Int[]
+  in_progress_ids  Int[]
+  completed_ids Int[]
+
+  project       Project  @relation(fields: [projectId], references: [id])
 }
 
 model Document {
@@ -30,9 +46,8 @@ model Document {
   type      String
   userId    Int
   user      User      @relation(fields: [userId], references: [id])
-  tasks     Task[]
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime  @default(now())
 }
 
 model User {
@@ -42,7 +57,8 @@ model User {
   email            String     @unique
   password         String
   documents        Document[]
-  tasks            Task[]
+  tasksCreated     Task[]     @relation("TaskCreator")
+  tasksAssigned    Task[]     @relation("TaskAssignee")
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   sentMessages     Message[]  @relation("SentMessages")
@@ -63,7 +79,7 @@ model Message {
   senderId  Int
   receiverId Int
   createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  updatedAt DateTime   @default(now())
 
   @@map("messages") // Optional: Specify custom table name if needed
 }
@@ -72,7 +88,7 @@ model Team {
   id          Int           @id @default(autoincrement())
   title       String
   createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  updatedAt   DateTime      @default(now())
   creatorId   Int
   creator     User          @relation("CreatedTeams", fields: [creatorId], references: [id])
   members     TeamMember[]
@@ -94,13 +110,14 @@ model Project {
   id          Int           @id @default(autoincrement())
   title       String
   createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  updatedAt   DateTime      @default(now())
   creatorId   Int
   teamId      Int
 
   creator     User          @relation("CreatedProjects", fields: [creatorId], references: [id])
   team        Team          @relation(fields: [teamId], references: [id])
   tasks       Task[]
+  taskOrder   TaskOrder?
   members     ProjectMember[]
 
   @@map("projects") // Optional: Specify custom table name if needed
