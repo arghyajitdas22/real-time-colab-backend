@@ -10,6 +10,7 @@ const messageRoutes = require("./routes/messages.js");
 const teamRoutes = require("./routes/team.js");
 const userRoutes = require("./routes/user.js");
 const projectRoutes = require("./routes/project.js");
+const taskRoutes = require("./routes/task.route.js");
 
 connectDB();
 
@@ -23,6 +24,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/project", projectRoutes);
+app.use("/api/task", taskRoutes);
 
 const server = app.listen(8000, () => {
   console.log("Server is running on http://localhost:8000");

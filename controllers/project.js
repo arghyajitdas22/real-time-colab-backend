@@ -12,33 +12,73 @@ const createProject = async (req, res) => {
 
   try {
     // Start a transaction
-    const project = await prisma.$transaction(async (prisma) => {
+    const result = await prisma.$transaction(async (prisma) => {
       // Create the project
       const newProject = await prisma.project.create({
         data: {
           title,
-          team: { connect: { id: Number(teamId) } },
-          creator: { connect: { id: Number(creatorId) } },
+          teamId: Number(teamId),
+          creatorId: Number(creatorId),
         },
       });
 
-      // Create project members
+      // Create the ProjectMember entries
       const projectMembers = memberIds.map((memberId) => ({
         projectId: newProject.id,
         userId: Number(memberId),
       }));
+      await prisma.projectMember.createMany({
+        data: projectMembers,
+      });
 
-      await prisma.projectMember.createMany({ data: projectMembers });
+      // Create the TaskOrder entry for the project
+      await prisma.taskOrder.create({
+        data: {
+          projectId: newProject.id,
+          to_do_ids: [],
+          in_progress_ids: [],
+          completed_ids: [],
+        },
+      });
 
       return newProject;
     });
 
-    res.status(StatusCodes.CREATED).json(project);
+    res.status(StatusCodes.CREATED).json(result);
   } catch (error) {
+    console.error("Error creating project:", error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ error: "An error occurred while creating the project" });
   }
 };
 
-module.exports = { createProject };
+const getAllMembersOfProject = async (req, res) => {
+  const { projectId } = req.params;
+
+  if (!projectId) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ error: "Project ID is required" });
+  }
+
+  try {
+    const projectMembers = await prisma.projectMember.findMany({
+      where: { projectId: Number(projectId) },
+      include: {
+        user: true, // Include user details in the response
+      },
+    });
+
+    const members = projectMembers.map((pm) => pm.user);
+
+    res.status(StatusCodes.OK).json(members);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: "An error occurred while fetching project members" });
+  }
+};
+
+module.exports = { createProject, getAllMembersOfProject };
